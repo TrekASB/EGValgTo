@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8" />
-  <title>Multi-Property Kakediagrammer (opptil 4)</title>
+  <title>MultiProperty Checker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -48,19 +48,35 @@
       min-width: 300px;
     }
     .logo {
-      width: 48px;
-      height: 48px;
+      width: 144px;   /* 3x større enn 48 */
+      height: 144px;
       border-radius: 8px;
       object-fit: contain;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       background: #fff;
       padding: 4px;
     }
+    .title-block {
+      display: flex;
+      flex-direction: column;
+    }
     .title {
       font-size: 22px;
       font-weight: 700;
       color: var(--primary);
       margin: 0;
+    }
+    .org {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--dark);
+      margin-top: -4px;
+    }
+    .dev {
+      font-size: 12px;
+      color: var(--gray);
+      margin-top: -2px;
+      font-style: italic;
     }
     .subtitle {
       font-size: 14px;
@@ -211,7 +227,7 @@
       justify-content: flex-end;
     }
 
-    /* Detalj-liste under diagrammet */
+    /* Detalj-lister under diagrammet */
     .detail-container {
       margin-top: 12px;
       text-align: left;
@@ -315,9 +331,15 @@
 <body>
   <header>
     <div class="title-container">
-      <img src="https://norconsult.com/wp-content/uploads/2023/09/norconsult-logo-2023.svg"
-           alt="Norconsult Logo" class="logo">
-      <h1 class="title">Multi-Property Kakediagrammer</h1>
+      <!-- Logo-fil må ligge i samme mappe som denne HTML-filen -->
+      <img src="norconsult-logo-black.png"
+           alt="Norconsult logo" class="logo">
+
+      <div class="title-block">
+        <h1 class="title">MultiProperty Checker</h1>
+        <div class="org">Norconsult Norge</div>
+        <div class="dev">Developed by Edin Dzakmic</div>
+      </div>
     </div>
 
     <span class="subtitle">Opptil 4 egenskaper samtidig</span>
@@ -373,7 +395,7 @@
     <div id="error"></div>
     <div id="chartsContainer"></div>
     <div class="footer-credit">
-      Norconsult – Property completeness-oversikt direkte i modellen.<br>
+      MultiProperty Checker – Property completeness-oversikt direkte i modellen.<br>
       Klikk på et kakediagram for å se tabeller med objekter (med / uten verdi) og eksportere til CSV.
     </div>
   </main>
@@ -556,8 +578,11 @@
           if (psName === "component attributes" || psName === "componentattributes") {
             for (const p of ps.properties || []) {
               const pn = (p.name || "").toLowerCase();
-              if (pn === "guid" || pn === "ifc guid" || pn === "ifcguid" ||
-                  pn === "globalid" || pn === "global id") {
+              if (
+                pn === "guid" ||
+                pn === "ifc guid" || pn === "ifcguid" ||
+                pn === "globalid" || pn === "global id"
+              ) {
                 if (p.value) return String(p.value);
               }
             }
@@ -569,8 +594,11 @@
           for (const ps of obj.properties) {
             for (const p of ps.properties || []) {
               const pn = (p.name || "").toLowerCase();
-              if (pn === "guid" || pn === "ifc guid" || pn === "ifcguid" ||
-                  pn === "globalid" || pn === "global id") {
+              if (
+                pn === "guid" ||
+                pn === "ifc guid" || pn === "ifcguid" ||
+                pn === "globalid" || pn === "global id"
+              ) {
                 if (p.value) return String(p.value);
               }
             }
