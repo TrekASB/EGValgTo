@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Plugin for prosenttekst inne i kakestykkene -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <style>
     :root {
       --primary: #0069d9;
@@ -48,7 +50,7 @@
       min-width: 300px;
     }
     .logo {
-      width: 144px;   /* 3x større enn 48 */
+      width: 144px;
       height: 144px;
       border-radius: 8px;
       object-fit: contain;
@@ -227,7 +229,6 @@
       justify-content: flex-end;
     }
 
-    /* Detalj-lister under diagrammet */
     .detail-container {
       margin-top: 12px;
       text-align: left;
@@ -331,7 +332,6 @@
 <body>
   <header>
     <div class="title-container">
-      <!-- Logo-fil må ligge i samme mappe som denne HTML-filen -->
       <img src="norconsult-logo-black.png"
            alt="Norconsult logo" class="logo">
 
@@ -396,7 +396,7 @@
     <div id="chartsContainer"></div>
     <div class="footer-credit">
       MultiProperty Checker – Property completeness-oversikt direkte i modellen.<br>
-      Klikk på et kakediagram for å se tabeller med objekter (med / uten verdi) og eksportere til CSV.
+      Klikk på et kakestykke for å markere objekter i modellen og vise tabeller med objekter (med / uten verdi) og eksportere til CSV.
     </div>
   </main>
 
@@ -424,6 +424,11 @@
 
     const propSelectIds = ["prop1", "prop2", "prop3", "prop4"];
     const cbIds = ["cb1", "cb2", "cb3", "cb4"];
+
+    // Registrer datalabels-plugin for prosenttekst inne i kakestykkene
+    if (window.ChartDataLabels) {
+      Chart.register(ChartDataLabels);
+    }
 
     function showError(msg) {
       els.error.textContent = msg || "";
@@ -567,11 +572,9 @@
       }
     }
 
-    // Hent GUID fra Component Attributes (eller andre pset) på objektnivå
     function extractGuidFromObject(obj) {
       let guid = obj.guid || obj.GlobalId || "";
 
-      // Sjekk Component Attributes først
       if (obj.properties && obj.properties.length) {
         for (const ps of obj.properties) {
           const psName = (ps.name || "").toLowerCase();
@@ -589,7 +592,6 @@
           }
         }
 
-        // Hvis vi fortsatt ikke har GUID, se gjennom alle pset etter vanlige GUID-navn
         if (!guid) {
           for (const ps of obj.properties) {
             for (const p of ps.properties || []) {
@@ -609,11 +611,10 @@
       return guid || "";
     }
 
-    // Hent data for valgt property med detaljer per objekt (for både fargelegging og tabell/CSV)
     async function getPropertyData(psetName, propName) {
       const counts = { withValue: 0, withoutValue: 0 };
-      const selection = { withValue: {}, withoutValue: {} }; // for fargelegging
-      const details = { withValue: {}, withoutValue: {} };   // for tabell/CSV
+      const selection = { withValue: {}, withoutValue: {} };
+      const details = { withValue: {}, withoutValue: {} };
 
       const models = await API.viewer.getObjects();
       if (!models || !models.length) return { counts, selection, details };
@@ -631,7 +632,7 @@
         for (const obj of objProps || []) {
           let hasProp = false;
           let hasVal = false;
-          const psetProps = {}; // alle properties fra valgt Property Set
+          const psetProps = {};
 
           for (const ps of obj.properties || []) {
             if (ps.name !== psetName) continue;
@@ -672,7 +673,6 @@
       return { counts, selection, details };
     }
 
-    // CSV helper
     function escapeCSV(value) {
       if (value === null || value === undefined) return "";
       const str = String(value);
@@ -694,7 +694,6 @@
         return;
       }
 
-      // Samle alle property-navn som forekommer i dette Property Set-et
       const allPropNamesSet = new Set();
       objects.forEach(o => {
         Object.keys(o.properties || {}).forEach(pn => allPropNamesSet.add(pn));
@@ -748,7 +747,6 @@
       showError("");
     }
 
-    // Bygg EN tabellseksjon (med/uten verdi)
     function buildDetailSection(pset, prop, sliceType, details, parent) {
       const detailPerModel = details[sliceType] || {};
       const objects = [];
@@ -848,14 +846,48 @@
       parent.appendChild(section);
     }
 
-    // Vis tabeller for både med og uten verdi
     function showBothSlicesDetails(pset, prop, details, detailContainer) {
       detailContainer.innerHTML = "";
       buildDetailSection(pset, prop, "withValue", details, detailContainer);
       buildDetailSection(pset, prop, "withoutValue", details, detailContainer);
     }
 
-    function createPieChart(pset, prop, counts, details) {
+    // Marker objekter i modellen for valgt kakestykke (withValue / withoutValue)
+    async function highlightSliceInModel(selection, sliceType) {
+      if (!API) return;
+
+      const perModel = selection[sliceType] || {};
+      const modelObjectIds = [];
+      let totalObjects = 0;
+
+      for (const modelId in perModel) {
+        const ids = perModel[modelId];
+        if (ids && ids.length) {
+          modelObjectIds.push({ modelId, objectRuntimeIds: ids });
+          totalObjects += ids.length;
+        }
+      }
+
+      if (!modelObjectIds.length) {
+        els.status.textContent =
+          sliceType === "withValue"
+            ? "Ingen objekter med verdi å markere."
+            : "Ingen objekter uten verdi/mangler property å markere.";
+        return;
+      }
+
+      try {
+        await API.viewer.setSelection({ modelObjectIds }, "replace");
+        els.status.textContent =
+          sliceType === "withValue"
+            ? `🔎 Markerte ${totalObjects} objekter MED verdi i modellen.`
+            : `🔎 Markerte ${totalObjects} objekter UTEN verdi/mangler property i modellen.`;
+      } catch (e) {
+        showError("Feil ved markering av objekter: " + (e && e.message ? e.message : e));
+      }
+    }
+
+    function createPieChart(pset, prop, counts, details, selection) {
       const total = counts.withValue + counts.withoutValue;
       const container = els.chartsContainer;
 
@@ -877,10 +909,9 @@
       summary.textContent =
         `Totalt ${total} objekter • Med verdi: ${counts.withValue} (${pctWith} %) • ` +
         `Uten verdi/mangler property: ${counts.withoutValue} (${pctWithout} %). ` +
-        `Klikk på kakediagrammet for å vise tabeller med begge grupper.`;
+        `Klikk på et kakestykke for å markere objekter og vise tabeller.`;
       card.appendChild(summary);
 
-      // Container for detaljlister / tabeller
       const detailContainer = document.createElement("div");
       detailContainer.className = "detail-container";
       card.appendChild(detailContainer);
@@ -918,14 +949,38 @@
                   return `${ctx.label}: ${pct}% (${v} objekter)`;
                 }
               }
+            },
+            // Prosenttekst inne i kakestykkene
+            datalabels: {
+              formatter: value => {
+                const pct = total ? (value / total * 100).toFixed(1) : 0;
+                return `${pct} %`;
+              },
+              color: "#fff",
+              font: {
+                weight: "bold",
+                size: 14
+              },
+              anchor: "center",
+              align: "center",
+              clamp: true,
+              clip: false
             }
           },
           animation: {
             animateRotate: true,
             duration: 900
           },
-          // Klikk på kakediagram -> vis tabeller med både med/uten verdi
-          onClick: () => {
+          // Klikk på kakestykke → marker objekter i modellen + vis tabeller
+          onClick: (event, elements) => {
+            if (!elements || !elements.length) return;
+            const index = elements[0].index;
+            const sliceType = index === 0 ? "withValue" : "withoutValue";
+
+            // Marker objekter i modellen for denne gruppen
+            highlightSliceInModel(selection, sliceType);
+
+            // Vis begge tabeller (med og uten verdi) under diagrammet
             showBothSlicesDetails(pset, prop, details, detailContainer);
           }
         }
@@ -971,13 +1026,13 @@
       try {
         for (const prop of selectedProps) {
           const { counts, selection, details } = await getPropertyData(pset, prop);
-          lastSelections.set(prop, selection); // fortsatt brukt for fargelegging
-          createPieChart(pset, prop, counts, details);
+          lastSelections.set(prop, selection);
+          createPieChart(pset, prop, counts, details, selection);
         }
 
         els.status.textContent =
-          `✅ ${selectedProps.length} kakediagram ferdig! Klikk på et kakediagram for å se tabeller ` +
-          `med objekter (med / uten verdi) og eksportere til CSV.`;
+          `✅ ${selectedProps.length} kakediagram ferdig! Klikk på et kakestykke for å markere objekter ` +
+          `og vise tabeller med objekter (med / uten verdi) og eksportere til CSV.`;
         els.colorizeButton.disabled = false;
         els.resetButton.disabled = false;
       } catch (e) {
@@ -1056,7 +1111,6 @@
       }
     }
 
-    // Checkbox → ekstra UX (rydder verdi hvis man skrur av)
     cbIds.forEach((cbId, index) => {
       const cb = document.getElementById(cbId);
       const sel = document.getElementById(propSelectIds[index]);
@@ -1068,7 +1122,6 @@
       });
     });
 
-    // Events
     els.scanButton.onclick = scanProperties;
     els.loadButton.onclick = loadAllCharts;
     els.colorizeButton.onclick = colorizeAll;
@@ -1082,9 +1135,7 @@
       els.resetButton.disabled = true;
     };
 
-    // Start
     connect();
   </script>
 </body>
 </html>
-
