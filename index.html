@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8" />
-  <title>MultiProperty Checker</title>
+  <title>Multi-Property Kakediagrammer (opptil 4)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -56,27 +56,11 @@
       background: #fff;
       padding: 4px;
     }
-    .title-block {
-      display: flex;
-      flex-direction: column;
-    }
     .title {
       font-size: 22px;
       font-weight: 700;
       color: var(--primary);
       margin: 0;
-    }
-    .org {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--dark);
-      margin-top: -4px;
-    }
-    .dev {
-      font-size: 12px;
-      color: var(--gray);
-      margin-top: -2px;
-      font-style: italic;
     }
     .subtitle {
       font-size: 14px;
@@ -159,7 +143,7 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.12);
       padding: 28px 24px 22px 24px;
       width: 100%;
-      max-width: 500px;
+      max-width: 550px;
       text-align: center;
       transition: transform 0.2s ease;
       position: relative;
@@ -226,6 +210,87 @@
       align-items: center;
       justify-content: flex-end;
     }
+
+    /* Detalj-liste under diagrammet */
+    .detail-container {
+      margin-top: 12px;
+      text-align: left;
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #eeeeee;
+      max-height: 260px;
+      overflow: auto;
+      font-size: 12px;
+    }
+    .detail-section {
+      margin-bottom: 10px;
+    }
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .detail-header span {
+      font-weight: 600;
+      color: var(--dark);
+    }
+    .detail-header small {
+      color: var(--gray);
+      font-weight: 400;
+    }
+    .export-btn {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 11px;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .export-btn:hover {
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      transform: translateY(-1px);
+    }
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .detail-table th,
+    .detail-table td {
+      padding: 3px 5px;
+      border-bottom: 1px solid #e4e4e4;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .detail-table th {
+      position: sticky;
+      top: 0;
+      background: #f0f0f0;
+      z-index: 1;
+      font-weight: 600;
+    }
+    .detail-table tbody tr:nth-child(even) {
+      background: #fdfdfd;
+    }
+    .detail-empty {
+      font-size: 12px;
+      color: var(--gray);
+      padding: 4px 0;
+    }
+    .detail-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
     @media (max-width: 1024px) {
       header {
         flex-direction: column;
@@ -250,15 +315,9 @@
 <body>
   <header>
     <div class="title-container">
-      <!-- Logo må ligge i samme mappe som HTML-fila -->
-      <img src="norconsult-logo-black.png"
-           alt="Norconsult logo" class="logo">
-
-      <div class="title-block">
-        <h1 class="title">MultiProperty Checker</h1>
-        <div class="org">Norconsult Norge</div>
-        <div class="dev">Developed by Edin Dzakmic</div>
-      </div>
+      <img src="https://norconsult.com/wp-content/uploads/2023/09/norconsult-logo-2023.svg"
+           alt="Norconsult Logo" class="logo">
+      <h1 class="title">Multi-Property Kakediagrammer</h1>
     </div>
 
     <span class="subtitle">Opptil 4 egenskaper samtidig</span>
@@ -314,7 +373,8 @@
     <div id="error"></div>
     <div id="chartsContainer"></div>
     <div class="footer-credit">
-      Norconsult – Property completeness-oversikt direkte i modellen (klikk på kakediagram for CSV-eksport)
+      Norconsult – Property completeness-oversikt direkte i modellen.<br>
+      Klikk på et kakediagram for å se tabeller med objekter (med / uten verdi) og eksportere til CSV.
     </div>
   </main>
 
@@ -322,7 +382,7 @@
     let API = null;
     let availableProps = {};
     let charts = [];
-    let lastSelections = new Map(); // kun for fargelegging
+    let lastSelections = new Map(); // for fargelegging
 
     const COLORS = {
       withValue: "rgb(46, 204, 113)",
@@ -381,7 +441,7 @@
       charts.forEach(c => c.destroy());
       charts = [];
       els.chartsContainer.innerHTML = "";
-      // lastSelections beholdes
+      // lastSelections beholdes for farge-reset
     }
 
     function resetPropertySelectors() {
@@ -485,10 +545,47 @@
       }
     }
 
+    // Hent GUID fra Component Attributes (eller andre pset) på objektnivå
+    function extractGuidFromObject(obj) {
+      let guid = obj.guid || obj.GlobalId || "";
+
+      // Sjekk Component Attributes først
+      if (obj.properties && obj.properties.length) {
+        for (const ps of obj.properties) {
+          const psName = (ps.name || "").toLowerCase();
+          if (psName === "component attributes" || psName === "componentattributes") {
+            for (const p of ps.properties || []) {
+              const pn = (p.name || "").toLowerCase();
+              if (pn === "guid" || pn === "ifc guid" || pn === "ifcguid" ||
+                  pn === "globalid" || pn === "global id") {
+                if (p.value) return String(p.value);
+              }
+            }
+          }
+        }
+
+        // Hvis vi fortsatt ikke har GUID, se gjennom alle pset etter vanlige GUID-navn
+        if (!guid) {
+          for (const ps of obj.properties) {
+            for (const p of ps.properties || []) {
+              const pn = (p.name || "").toLowerCase();
+              if (pn === "guid" || pn === "ifc guid" || pn === "ifcguid" ||
+                  pn === "globalid" || pn === "global id") {
+                if (p.value) return String(p.value);
+              }
+            }
+          }
+        }
+      }
+
+      return guid || "";
+    }
+
+    // Hent data for valgt property med detaljer per objekt (for både fargelegging og tabell/CSV)
     async function getPropertyData(psetName, propName) {
       const counts = { withValue: 0, withoutValue: 0 };
-      const selection = { withValue: {}, withoutValue: {} };
-      const details = { withValue: {}, withoutValue: {} };
+      const selection = { withValue: {}, withoutValue: {} }; // for fargelegging
+      const details = { withValue: {}, withoutValue: {} };   // for tabell/CSV
 
       const models = await API.viewer.getObjects();
       if (!models || !models.length) return { counts, selection, details };
@@ -506,7 +603,7 @@
         for (const obj of objProps || []) {
           let hasProp = false;
           let hasVal = false;
-          const psetProps = {};
+          const psetProps = {}; // alle properties fra valgt Property Set
 
           for (const ps of obj.properties || []) {
             if (ps.name !== psetName) continue;
@@ -535,7 +632,7 @@
             modelId,
             runtimeId: obj.id,
             name: obj.name || obj.objectName || "",
-            guid: obj.guid || obj.GlobalId || "",
+            guid: extractGuidFromObject(obj),
             properties: psetProps
           };
 
@@ -547,6 +644,7 @@
       return { counts, selection, details };
     }
 
+    // CSV helper
     function escapeCSV(value) {
       if (value === null || value === undefined) return "";
       const str = String(value);
@@ -564,10 +662,11 @@
       }
 
       if (!objects.length) {
-        showError("Ingen objekter å eksportere for valgt kakestykke.");
+        showError("Ingen objekter å eksportere for valgt gruppe.");
         return;
       }
 
+      // Samle alle property-navn som forekommer i dette Property Set-et
       const allPropNamesSet = new Set();
       objects.forEach(o => {
         Object.keys(o.properties || {}).forEach(pn => allPropNamesSet.add(pn));
@@ -575,7 +674,7 @@
 
       const allPropNames = Array.from(allPropNamesSet).sort((a, b) => a.localeCompare(b, "nb"));
 
-      const baseCols = ["ModelId", "RuntimeId", "ObjectName", "ObjectGuid", "SliceType", "PropertySet"];
+      const baseCols = ["#", "ModelId", "RuntimeId", "ObjectName", "ObjectGuid", "SliceType", "PropertySet"];
       const header = baseCols.concat(allPropNames);
 
       const rows = [];
@@ -583,8 +682,9 @@
 
       const sliceLabel = sliceType === "withValue" ? "Med verdi" : "Uten verdi";
 
-      objects.forEach(o => {
+      objects.forEach((o, index) => {
         const row = {
+          "#": index + 1,
           ModelId: o.modelId || "",
           RuntimeId: o.runtimeId || "",
           ObjectName: o.name || "",
@@ -615,8 +715,116 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      els.status.textContent = `📤 Eksporterte ${objects.length} objekter til CSV (${sliceLabel}) for ${pset} → ${prop}.`;
+      els.status.textContent =
+        `📤 Eksporterte ${objects.length} objekter til CSV (${sliceLabel}) for ${pset} → ${prop}.`;
       showError("");
+    }
+
+    // Bygg EN tabellseksjon (med/uten verdi)
+    function buildDetailSection(pset, prop, sliceType, details, parent) {
+      const detailPerModel = details[sliceType] || {};
+      const objects = [];
+      for (const modelId in detailPerModel) {
+        const arr = detailPerModel[modelId] || [];
+        arr.forEach(o => objects.push(o));
+      }
+
+      const sliceLabel = sliceType === "withValue" ? "Med verdi" : "Uten verdi/mangler property";
+
+      const section = document.createElement("div");
+      section.className = "detail-section";
+
+      const title = document.createElement("div");
+      title.className = "detail-title";
+      title.textContent = sliceLabel;
+      section.appendChild(title);
+
+      const headerDiv = document.createElement("div");
+      headerDiv.className = "detail-header";
+
+      const infoSpan = document.createElement("span");
+      if (!objects.length) {
+        infoSpan.textContent = "Ingen objekter i denne gruppen.";
+      } else {
+        infoSpan.textContent = `Antall objekter: ${objects.length}`;
+      }
+
+      const infoSmall = document.createElement("small");
+      infoSmall.textContent = "Kolonner: #, ModelId, RuntimeId, GUID, Navn, Verdi for valgt property.";
+
+      const leftInfo = document.createElement("div");
+      leftInfo.style.display = "flex";
+      leftInfo.style.flexDirection = "column";
+      leftInfo.appendChild(infoSpan);
+      leftInfo.appendChild(infoSmall);
+
+      headerDiv.appendChild(leftInfo);
+
+      if (objects.length) {
+        const exportBtn = document.createElement("button");
+        exportBtn.className = "export-btn";
+        exportBtn.innerHTML = "📤 Eksporter til CSV";
+        exportBtn.onclick = () => exportSliceToCSV(pset, prop, sliceType, detailPerModel);
+        headerDiv.appendChild(exportBtn);
+      }
+
+      section.appendChild(headerDiv);
+
+      if (!objects.length) {
+        const emptyDiv = document.createElement("div");
+        emptyDiv.className = "detail-empty";
+        emptyDiv.textContent = "Ingen objekt å vise for denne gruppen.";
+        section.appendChild(emptyDiv);
+        parent.appendChild(section);
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.className = "detail-table";
+
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      ["#", "ModelId", "RuntimeId", "ObjectGuid", "ObjectName", prop].forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      objects.forEach((o, index) => {
+        const tr = document.createElement("tr");
+        const val = o.properties ? o.properties[prop] : "";
+
+        const cells = [
+          index + 1,
+          o.modelId || "",
+          o.runtimeId || "",
+          o.guid || "",
+          o.name || "",
+          val !== undefined && val !== null ? val : ""
+        ];
+
+        cells.forEach(c => {
+          const td = document.createElement("td");
+          td.textContent = c;
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      section.appendChild(table);
+      parent.appendChild(section);
+    }
+
+    // Vis tabeller for både med og uten verdi
+    function showBothSlicesDetails(pset, prop, details, detailContainer) {
+      detailContainer.innerHTML = "";
+      buildDetailSection(pset, prop, "withValue", details, detailContainer);
+      buildDetailSection(pset, prop, "withoutValue", details, detailContainer);
     }
 
     function createPieChart(pset, prop, counts, details) {
@@ -641,8 +849,13 @@
       summary.textContent =
         `Totalt ${total} objekter • Med verdi: ${counts.withValue} (${pctWith} %) • ` +
         `Uten verdi/mangler property: ${counts.withoutValue} (${pctWithout} %). ` +
-        `Klikk på en kakedel for å eksportere objektene til CSV.`;
+        `Klikk på kakediagrammet for å vise tabeller med begge grupper.`;
       card.appendChild(summary);
+
+      // Container for detaljlister / tabeller
+      const detailContainer = document.createElement("div");
+      detailContainer.className = "detail-container";
+      card.appendChild(detailContainer);
 
       container.appendChild(card);
 
@@ -683,13 +896,9 @@
             animateRotate: true,
             duration: 900
           },
-          onClick: (evt, elements) => {
-            if (!elements.length) return;
-            const idx = elements[0].index;
-            const sliceType = idx === 0 ? "withValue" : "withoutValue";
-            const detailPerModel = details[sliceType] || {};
-
-            exportSliceToCSV(pset, prop, sliceType, detailPerModel);
+          // Klikk på kakediagram -> vis tabeller med både med/uten verdi
+          onClick: () => {
+            showBothSlicesDetails(pset, prop, details, detailContainer);
           }
         }
       });
@@ -734,12 +943,13 @@
       try {
         for (const prop of selectedProps) {
           const { counts, selection, details } = await getPropertyData(pset, prop);
-          lastSelections.set(prop, selection);
+          lastSelections.set(prop, selection); // fortsatt brukt for fargelegging
           createPieChart(pset, prop, counts, details);
         }
 
-        els.status.textContent = `✅ ${selectedProps.length} kakediagram ferdig! ` +
-          `Klikk på kakediagram for CSV-eksport, eller bruk «Fargelegg alle» i modellen.`;
+        els.status.textContent =
+          `✅ ${selectedProps.length} kakediagram ferdig! Klikk på et kakediagram for å se tabeller ` +
+          `med objekter (med / uten verdi) og eksportere til CSV.`;
         els.colorizeButton.disabled = false;
         els.resetButton.disabled = false;
       } catch (e) {
@@ -818,6 +1028,7 @@
       }
     }
 
+    // Checkbox → ekstra UX (rydder verdi hvis man skrur av)
     cbIds.forEach((cbId, index) => {
       const cb = document.getElementById(cbId);
       const sel = document.getElementById(propSelectIds[index]);
@@ -829,6 +1040,7 @@
       });
     });
 
+    // Events
     els.scanButton.onclick = scanProperties;
     els.loadButton.onclick = loadAllCharts;
     els.colorizeButton.onclick = colorizeAll;
@@ -842,6 +1054,7 @@
       els.resetButton.disabled = true;
     };
 
+    // Start
     connect();
   </script>
 </body>
