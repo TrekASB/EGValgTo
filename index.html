@@ -611,11 +611,64 @@
       return guid || "";
     }
 
+    function extractFileNameFromObject(obj) {
+      if (!obj || !obj.properties) return "";
+
+      for (const ps of obj.properties) {
+        for (const p of ps.properties || []) {
+          const pn = (p.name || "").toLowerCase();
+          if (pn === "file name" || pn === "filename" || pn === "file") {
+            if (p.value) return String(p.value);
+          }
+        }
+      }
+
+      return "";
+    }
+
+    async function getModelNameMap() {
+      const map = {};
+      if (!API) return map;
+
+      try {
+        if (API.viewer && typeof API.viewer.getModels === "function") {
+          const models = await API.viewer.getModels();
+          (models || []).forEach(m => {
+            const modelId = m.modelId || m.modelid || m["model Id"];
+            if (!modelId) return;
+            const name =
+              m.fileName || m.filename || m.file || m.name || m.modelName || "";
+            if (name) map[modelId] = name;
+          });
+        }
+      } catch (e) {
+        // fall back to info from getObjects if getModels isn't available
+      }
+
+      if (Object.keys(map).length) return map;
+
+      try {
+        const models = await API.viewer.getObjects();
+        (models || []).forEach(m => {
+          const modelId = m.modelId || m.modelid || m["model Id"];
+          if (!modelId) return;
+          const name =
+            m.fileName || m.filename || m.file || m.name || m.modelName || "";
+          if (name) map[modelId] = name;
+        });
+      } catch (e) {
+        // ignore
+      }
+
+      return map;
+    }
+
     async function getPropertyData(psetName, propName) {
       const counts = { withValue: 0, withoutValue: 0 };
       const selection = { withValue: {}, withoutValue: {} };
       const details = { withValue: {}, withoutValue: {} };
 
+      const modelNameMap = await getModelNameMap();
       const models = await API.viewer.getObjects();
       if (!models || !models.length) return { counts, selection, details };
 
@@ -623,6 +676,8 @@
         const modelId = m.modelId || m.modelid || m["model Id"];
         const objs = m.objects || [];
         if (!modelId || !objs.length) continue;
+        const fallbackModelName =
+          m.fileName || m.filename || m.file || m.name || m.modelName || "";
 
         const runtimeIds = objs.map(o => o.id);
         if (!runtimeIds.length) continue;
@@ -633,6 +688,9 @@
           let hasProp = false;
           let hasVal = false;
           const psetProps = {};
+          const fileNameFromObject = extractFileNameFromObject(obj);
+          const modelName =
+            modelNameMap[modelId] || fileNameFromObject || fallbackModelName;
 
           for (const ps of obj.properties || []) {
             if (ps.name !== psetName) continue;
@@ -659,6 +717,7 @@
 
           const objectInfo = {
             modelId,
+            modelName,
             runtimeId: obj.id,
             name: obj.name || obj.objectName || "",
             guid: extractGuidFromObject(obj),
@@ -701,7 +760,16 @@
 
       const allPropNames = Array.from(allPropNamesSet).sort((a, b) => a.localeCompare(b, "nb"));
 
-      const baseCols = ["#", "ModelId", "RuntimeId", "ObjectName", "ObjectGuid", "SliceType", "PropertySet"];
+      const baseCols = [
+        "#",
+        "ModelId",
+        "ModelName",
+        "RuntimeId",
+        "ObjectName",
+        "ObjectGuid",
+        "SliceType",
+        "PropertySet"
+      ];
       const header = baseCols.concat(allPropNames);
 
       const rows = [];
@@ -713,6 +781,7 @@
         const row = {
           "#": index + 1,
           ModelId: o.modelId || "",
+          ModelName: o.modelName || "",
           RuntimeId: o.runtimeId || "",
           ObjectName: o.name || "",
           ObjectGuid: o.guid || "",
@@ -776,7 +845,7 @@
       }
 
       const infoSmall = document.createElement("small");
-      infoSmall.textContent = "Kolonner: #, ModelId, RuntimeId, GUID, Navn, Verdi for valgt property.";
+      infoSmall.textContent = "Kolonner: #, ModelId, Modellnavn, RuntimeId, GUID, Navn, Verdi for valgt property.";
 
       const leftInfo = document.createElement("div");
       leftInfo.style.display = "flex";
@@ -810,7 +879,7 @@
 
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-      ["#", "ModelId", "RuntimeId", "ObjectGuid", "ObjectName", prop].forEach(col => {
+      ["#", "ModelId", "ModelName", "RuntimeId", "ObjectGuid", "ObjectName", prop].forEach(col => {
         const th = document.createElement("th");
         th.textContent = col;
         headRow.appendChild(th);
@@ -826,6 +895,7 @@
         const cells = [
           index + 1,
           o.modelId || "",
+          o.modelName || "",
           o.runtimeId || "",
           o.guid || "",
           o.name || "",
