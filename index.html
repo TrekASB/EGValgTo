@@ -147,7 +147,7 @@
   <div class="footer-credit">
     MultiProperty Checker – Property completeness-oversikt direkte i modellen.<br>
     Klikk på et kakestykke for å markere objekter og vise tabeller. <b>Klikk på en rad for å zoome til objektet.</b><br>
-    (IFCPROJECT og IFCBUILDING er filtrert bort.)
+    (IFCPROJECT og IFCBUILDING skal være filtrert bort.)
   </div>
 </main>
 
@@ -231,32 +231,108 @@
     });
   }
 
-  // ========= Ignore IFCPROJECT + IFCBUILDING helpers =========
-  function getIfcEntityTypeFromObjectProps(obj){
-    const direct = obj.ifcType || obj.ifcEntity || obj.entityType || obj.type || obj.objectType || obj.className;
-    if (direct && String(direct).trim()) return String(direct).trim().toUpperCase();
+  // ============================
+  // Robust ignore IFCPROJECT + IFCBUILDING
+  // ============================
+  const IGNORE_TYPES = new Set(["IFCPROJECT","IFCBUILDING"]);
 
+  function normStr(v){
+    return (v === null || v === undefined) ? "" : String(v).trim();
+  }
+
+  function looksLikeIfcEntityName(v){
+    const s = normStr(v).toUpperCase();
+    return s.startsWith("IFC") ? s : "";
+  }
+
+  function containsIfcTypeAnywhere(obj, ifcTypeUpper){
+    const target = ifcTypeUpper.toUpperCase();
+
+    // Sjekk “direkte” felter først
+    const directCandidates = [
+      obj.ifcType, obj.ifcEntity, obj.entityType, obj.type, obj.objectType, obj.className, obj.class
+    ];
+    for (const c of directCandidates){
+      const t = looksLikeIfcEntityName(c);
+      if (t === target) return true;
+    }
+
+    // Sjekk navn/objektnavn (noen ganger ligger IFC-typen her)
+    const nameCandidates = [obj.name, obj.objectName];
+    for (const c of nameCandidates){
+      const s = normStr(c).toUpperCase();
+      if (s === target || s.includes(target)) return true;
+    }
+
+    // Søk gjennom ALLE property sets og verdier (mest robuste)
     for (const ps of (obj.properties || [])){
-      for (const p of (ps.properties || [])){
-        const pn = String(p.name || "").toLowerCase();
-        const pv = (p.value === null || p.value === undefined) ? "" : String(p.value).trim();
-        if (!pv) continue;
+      const psName = normStr(ps.name).toUpperCase();
+      if (psName === target) return true; // sjelden, men kan skje
 
-        if (pn === "ifctype" || pn === "ifc type" || pn === "entity" || pn === "entity type" ||
-            pn === "ifcentity" || pn === "ifc entity" || pn === "type" ||
-            pn === "objecttype" || pn === "class" || pn === "classname"){
-          return pv.toUpperCase();
-        }
+      for (const p of (ps.properties || [])){
+        const pn = normStr(p.name).toUpperCase();
+        const pv = normStr(p.value).toUpperCase();
+
+        // Både navn og verdi kan inneholde IFC-typen
+        if (pn === target || pv === target) return true;
+        if (pn.includes(target) || pv.includes(target)) return true;
       }
     }
+    return false;
+  }
+
+  function getIfcEntityTypeFromObjectProps(obj){
+    // 1) Direkte felter
+    const direct = looksLikeIfcEntityName(
+      obj.ifcType || obj.ifcEntity || obj.entityType || obj.type || obj.objectType || obj.className || obj.class
+    );
+    if (direct) return direct;
+
+    // 2) Vanlige property-navn (i ulike Psets)
+    const wantedPropNames = new Set([
+      "IFC TYPE","IFCTYPE","IFC ENTITY","IFCENTITY","ENTITY","ENTITY TYPE","ENTITYTYPE",
+      "CLASS","CLASSNAME","OBJECTTYPE","OBJECT TYPE","COMMON TYPE","IFC CLASS","IFCCLASS"
+    ]);
+
+    // Prioriter noen pset-navn først, men sjekk alle uansett
+    const psets = (obj.properties || []);
+    const prioritized = [];
+    const others = [];
+
+    for (const ps of psets){
+      const n = normStr(ps.name).toLowerCase();
+      if (n.includes("reference object") || n === "ifc" || n.includes("component attributes")) prioritized.push(ps);
+      else others.push(ps);
+    }
+
+    const ordered = prioritized.concat(others);
+
+    for (const ps of ordered){
+      for (const p of (ps.properties || [])){
+        const pn = normStr(p.name).toUpperCase();
+        if (!wantedPropNames.has(pn)) continue;
+
+        const t = looksLikeIfcEntityName(p.value);
+        if (t) return t;
+      }
+    }
+
     return "";
   }
 
   function isIgnoredIfcEntity(obj){
+    // 1) Klar type
     const t = getIfcEntityTypeFromObjectProps(obj);
-    return t === "IFCPROJECT" || t === "IFCBUILDING";
+    if (t && IGNORE_TYPES.has(t)) return true;
+
+    // 2) Fallback: sjekk om IFCPROJECT/IFCBUILDING finnes hvor som helst i dataene
+    for (const it of IGNORE_TYPES){
+      if (containsIfcTypeAnywhere(obj, it)) return true;
+    }
+
+    return false;
   }
-  // ==========================================================
+  // ============================
 
   async function scanProperties(){
     if (!API){ showError("API ikke klar. Vent litt og prøv igjen."); return; }
@@ -288,7 +364,6 @@
 
         const objProps = await API.viewer.getObjectProperties(modelId, runtimeIds);
         for (const obj of objProps || []){
-          // ✅ IKKE les IFCPROJECT / IFCBUILDING
           if (isIgnoredIfcEntity(obj)) continue;
 
           for (const pset of obj.properties || []){
@@ -380,7 +455,6 @@
       const objProps = await API.viewer.getObjectProperties(modelId, runtimeIds);
 
       for (const obj of objProps || []){
-        // ✅ IKKE les IFCPROJECT / IFCBUILDING
         if (isIgnoredIfcEntity(obj)) continue;
 
         let hasProp = false;
@@ -432,24 +506,20 @@
     return str;
   }
 
-  // ---------------- DEDUP / VALIDATION ----------------
   function validateIfcGuids(objects){
     const missing = [];
-    const map = new Map(); // guid -> array of objects
-
+    const map = new Map();
     for (const o of objects){
       const g = (o.ifcGlobalId || "").trim();
       if (!g){ missing.push(o); continue; }
       if (!map.has(g)) map.set(g, []);
       map.get(g).push(o);
     }
-
     const duplicates = [];
     for (const [guid, arr] of map.entries()){
       if (arr.length > 1) duplicates.push({ guid, count: arr.length, objects: arr });
     }
     duplicates.sort((a,b)=>b.count-a.count);
-
     return { missing, duplicates };
   }
 
@@ -461,19 +531,16 @@
     lines.push("");
     lines.push(`• Manglende IfcGlobalId: ${missing.length}`);
     lines.push(`• Dupliserte IfcGlobalId (grupper): ${duplicates.length}`);
-
     if (duplicates.length){
       lines.push("");
       lines.push("Topp duplikater:");
       duplicates.slice(0,5).forEach(d => lines.push(`- ${d.guid}  (x${d.count})`));
       if (duplicates.length > 5) lines.push(`... +${duplicates.length-5} flere`);
     }
-
     lines.push("");
     lines.push("Vil du eksportere likevel?");
     return lines.join("\n");
   }
-  // ----------------------------------------------------
 
   function exportSliceToCSV(pset, prop, sliceType, detailPerModel){
     const objects = [];
@@ -576,7 +643,7 @@
 
     const infoSpan = document.createElement("span");
     const infoSmall = document.createElement("small");
-    infoSmall.textContent = "Klikk på en rad for å zoome til objektet. (IFCPROJECT/IFCBUILDING er filtrert bort.)";
+    infoSmall.textContent = "Klikk på en rad for å zoome til objektet. (IFCPROJECT/IFCBUILDING filtreres bort.)";
 
     left.appendChild(infoSpan);
     left.appendChild(infoSmall);
@@ -840,9 +907,9 @@
 
     try{
       for (const prop of selectedProps){
-        const { counts, selection, details } = await getPropertyData(els.psetSelect.value, prop);
+        const { counts, selection, details } = await getPropertyData(pset, prop);
         lastSelections.set(prop, selection);
-        createPieChart(els.psetSelect.value, prop, counts, details, selection);
+        createPieChart(pset, prop, counts, details, selection);
       }
 
       els.status.textContent =
