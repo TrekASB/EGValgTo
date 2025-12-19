@@ -147,7 +147,7 @@
   <div class="footer-credit">
     MultiProperty Checker – Property completeness-oversikt direkte i modellen.<br>
     Klikk på et kakestykke for å markere objekter og vise tabeller. <b>Klikk på en rad for å zoome til objektet.</b><br>
-    (IFCPROJECT og IFCBUILDING skal være filtrert bort.)
+    (IFCPROJECT / IFCSITE / IFCBUILDING / IFCBUILDINGSTOREY filtreres bort.)
   </div>
 </main>
 
@@ -232,9 +232,14 @@
   }
 
   // ============================
-  // Robust ignore IFCPROJECT + IFCBUILDING
+  // Robust ignore (IFC root/container entities)
   // ============================
-  const IGNORE_TYPES = new Set(["IFCPROJECT","IFCBUILDING"]);
+  const IGNORE_TYPES = new Set([
+    "IFCPROJECT",
+    "IFCSITE",
+    "IFCBUILDING",
+    "IFCBUILDINGSTOREY"
+  ]);
 
   function normStr(v){
     return (v === null || v === undefined) ? "" : String(v).trim();
@@ -248,7 +253,6 @@
   function containsIfcTypeAnywhere(obj, ifcTypeUpper){
     const target = ifcTypeUpper.toUpperCase();
 
-    // Sjekk “direkte” felter først
     const directCandidates = [
       obj.ifcType, obj.ifcEntity, obj.entityType, obj.type, obj.objectType, obj.className, obj.class
     ];
@@ -257,23 +261,20 @@
       if (t === target) return true;
     }
 
-    // Sjekk navn/objektnavn (noen ganger ligger IFC-typen her)
     const nameCandidates = [obj.name, obj.objectName];
     for (const c of nameCandidates){
       const s = normStr(c).toUpperCase();
       if (s === target || s.includes(target)) return true;
     }
 
-    // Søk gjennom ALLE property sets og verdier (mest robuste)
     for (const ps of (obj.properties || [])){
       const psName = normStr(ps.name).toUpperCase();
-      if (psName === target) return true; // sjelden, men kan skje
+      if (psName === target) return true;
 
       for (const p of (ps.properties || [])){
         const pn = normStr(p.name).toUpperCase();
         const pv = normStr(p.value).toUpperCase();
 
-        // Både navn og verdi kan inneholde IFC-typen
         if (pn === target || pv === target) return true;
         if (pn.includes(target) || pv.includes(target)) return true;
       }
@@ -282,19 +283,16 @@
   }
 
   function getIfcEntityTypeFromObjectProps(obj){
-    // 1) Direkte felter
     const direct = looksLikeIfcEntityName(
       obj.ifcType || obj.ifcEntity || obj.entityType || obj.type || obj.objectType || obj.className || obj.class
     );
     if (direct) return direct;
 
-    // 2) Vanlige property-navn (i ulike Psets)
     const wantedPropNames = new Set([
       "IFC TYPE","IFCTYPE","IFC ENTITY","IFCENTITY","ENTITY","ENTITY TYPE","ENTITYTYPE",
       "CLASS","CLASSNAME","OBJECTTYPE","OBJECT TYPE","COMMON TYPE","IFC CLASS","IFCCLASS"
     ]);
 
-    // Prioriter noen pset-navn først, men sjekk alle uansett
     const psets = (obj.properties || []);
     const prioritized = [];
     const others = [];
@@ -321,15 +319,12 @@
   }
 
   function isIgnoredIfcEntity(obj){
-    // 1) Klar type
     const t = getIfcEntityTypeFromObjectProps(obj);
     if (t && IGNORE_TYPES.has(t)) return true;
 
-    // 2) Fallback: sjekk om IFCPROJECT/IFCBUILDING finnes hvor som helst i dataene
     for (const it of IGNORE_TYPES){
       if (containsIfcTypeAnywhere(obj, it)) return true;
     }
-
     return false;
   }
   // ============================
@@ -380,7 +375,7 @@
       const psetNames = Object.keys(availableProps);
 
       if (!psetNames.length){
-        els.status.textContent = "ℹ️ Ingen Property Sets funnet (etter filtrering av IFCPROJECT/IFCBUILDING).";
+        els.status.textContent = "ℹ️ Ingen Property Sets funnet (etter filtrering av root/container-objekter).";
         sel.disabled = true;
       } else {
         psetNames.sort((a,b)=>a.localeCompare(b,"nb")).forEach(n => {
@@ -402,8 +397,7 @@
   }
 
   // ===== IFC GlobalId (IFC GUID) via convertToObjectIds =====
-  const ifcIdCache = new Map(); // key: `${modelId}:${runtimeId}` -> ifcGlobalId
-
+  const ifcIdCache = new Map();
   async function getIfcGlobalIdCached(modelId, runtimeId){
     const key = `${modelId}:${runtimeId}`;
     if (ifcIdCache.has(key)) return ifcIdCache.get(key);
@@ -643,7 +637,7 @@
 
     const infoSpan = document.createElement("span");
     const infoSmall = document.createElement("small");
-    infoSmall.textContent = "Klikk på en rad for å zoome til objektet. (IFCPROJECT/IFCBUILDING filtreres bort.)";
+    infoSmall.textContent = "Klikk på en rad for å zoome til objektet. (Root/container-objekter er filtrert bort.)";
 
     left.appendChild(infoSpan);
     left.appendChild(infoSmall);
