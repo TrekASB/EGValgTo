@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Plugin for prosenttekst inne i kakestykkene -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
   <style>
     :root {
       --primary: #0069d9;
@@ -58,10 +58,7 @@
       background: #fff;
       padding: 4px;
     }
-    .title-block {
-      display: flex;
-      flex-direction: column;
-    }
+    .title-block { display: flex; flex-direction: column; }
     .title {
       font-size: 22px;
       font-weight: 700;
@@ -102,11 +99,7 @@
       font-size: 14px;
       transition: all 0.2s ease;
     }
-    select {
-      background: white;
-      min-width: 180px;
-      max-width: 260px;
-    }
+    select { background: white; min-width: 180px; max-width: 260px; }
     select:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(0, 105, 217, 0.15);
@@ -191,10 +184,7 @@
       font-size: 13px;
       color: var(--gray);
     }
-    canvas {
-      max-height: 320px;
-      border-radius: 12px;
-    }
+    canvas { max-height: 320px; border-radius: 12px; }
     #status, #error {
       grid-column: 1 / -1;
       text-align: center;
@@ -228,7 +218,6 @@
       align-items: center;
       justify-content: flex-end;
     }
-
     .detail-container {
       margin-top: 12px;
       text-align: left;
@@ -240,9 +229,7 @@
       overflow: auto;
       font-size: 12px;
     }
-    .detail-section {
-      margin-bottom: 10px;
-    }
+    .detail-section { margin-bottom: 10px; }
     .detail-header {
       display: flex;
       justify-content: space-between;
@@ -251,14 +238,8 @@
       gap: 8px;
       flex-wrap: wrap;
     }
-    .detail-header span {
-      font-weight: 600;
-      color: var(--dark);
-    }
-    .detail-header small {
-      color: var(--gray);
-      font-weight: 400;
-    }
+    .detail-header span { font-weight: 600; color: var(--dark); }
+    .detail-header small { color: var(--gray); font-weight: 400; }
     .export-btn {
       padding: 6px 10px;
       border-radius: 6px;
@@ -271,17 +252,13 @@
       align-items: center;
       gap: 4px;
     }
-    .export-btn:hover {
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      transform: translateY(-1px);
-    }
+    .export-btn:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.15); transform: translateY(-1px); }
     .detail-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 11px;
     }
-    .detail-table th,
-    .detail-table td {
+    .detail-table th, .detail-table td {
       padding: 3px 5px;
       border-bottom: 1px solid #e4e4e4;
       text-align: left;
@@ -294,47 +271,24 @@
       z-index: 1;
       font-weight: 600;
     }
-    .detail-table tbody tr:nth-child(even) {
-      background: #fdfdfd;
-    }
-    .detail-empty {
-      font-size: 12px;
-      color: var(--gray);
-      padding: 4px 0;
-    }
-    .detail-title {
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
+    .detail-table tbody tr:nth-child(even) { background: #fdfdfd; }
+    .detail-empty { font-size: 12px; color: var(--gray); padding: 4px 0; }
+    .detail-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
 
     @media (max-width: 1024px) {
-      header {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .title-container {
-        justify-content: center;
-      }
-      .subtitle {
-        margin-left: 0;
-        text-align: center;
-      }
-      .prop-group {
-        justify-content: center;
-      }
-      .button-row {
-        justify-content: center;
-      }
+      header { flex-direction: column; align-items: stretch; }
+      .title-container { justify-content: center; }
+      .subtitle { margin-left: 0; text-align: center; }
+      .prop-group { justify-content: center; }
+      .button-row { justify-content: center; }
     }
   </style>
 </head>
+
 <body>
   <header>
     <div class="title-container">
-      <img src="norconsult-logo-black.png"
-           alt="Norconsult logo" class="logo">
-
+      <img src="norconsult-logo-black.png" alt="Norconsult logo" class="logo">
       <div class="title-block">
         <h1 class="title">MultiProperty Checker</h1>
         <div class="org">Norconsult Norge</div>
@@ -355,30 +309,22 @@
       <label>
         <input type="checkbox" id="cb1">
         Property 1:
-        <select id="prop1" disabled>
-          <option value="">(ingen)</option>
-        </select>
+        <select id="prop1" disabled><option value="">(ingen)</option></select>
       </label>
       <label>
         <input type="checkbox" id="cb2">
         Property 2:
-        <select id="prop2" disabled>
-          <option value="">(ingen)</option>
-        </select>
+        <select id="prop2" disabled><option value="">(ingen)</option></select>
       </label>
       <label>
         <input type="checkbox" id="cb3">
         Property 3:
-        <select id="prop3" disabled>
-          <option value="">(ingen)</option>
-        </select>
+        <select id="prop3" disabled><option value="">(ingen)</option></select>
       </label>
       <label>
         <input type="checkbox" id="cb4">
         Property 4:
-        <select id="prop4" disabled>
-          <option value="">(ingen)</option>
-        </select>
+        <select id="prop4" disabled><option value="">(ingen)</option></select>
       </label>
     </div>
 
@@ -404,7 +350,7 @@
     let API = null;
     let availableProps = {};
     let charts = [];
-    let lastSelections = new Map(); // for fargelegging
+    let lastSelections = new Map();
 
     const COLORS = {
       withValue: "rgb(46, 204, 113)",
@@ -425,10 +371,7 @@
     const propSelectIds = ["prop1", "prop2", "prop3", "prop4"];
     const cbIds = ["cb1", "cb2", "cb3", "cb4"];
 
-    // Registrer datalabels-plugin for prosenttekst inne i kakestykkene
-    if (window.ChartDataLabels) {
-      Chart.register(ChartDataLabels);
-    }
+    if (window.ChartDataLabels) Chart.register(ChartDataLabels);
 
     function showError(msg) {
       els.error.textContent = msg || "";
@@ -436,13 +379,7 @@
     }
 
     function setBusy(isBusy) {
-      const buttons = [
-        els.scanButton,
-        els.loadButton,
-        els.colorizeButton,
-        els.resetButton
-      ];
-      buttons.forEach(btn => {
+      [els.scanButton, els.loadButton, els.colorizeButton, els.resetButton].forEach(btn => {
         if (!btn) return;
         if (isBusy) {
           btn.dataset.prevDisabled = btn.disabled ? "true" : "false";
@@ -471,25 +408,21 @@
     }
 
     function resetPropertySelectors() {
-      const selects = propSelectIds.map(id => document.getElementById(id));
-      const cbs = cbIds.map(id => document.getElementById(id));
-      selects.forEach(s => {
+      propSelectIds.forEach(id => {
+        const s = document.getElementById(id);
         s.innerHTML = '<option value="">(ingen)</option>';
         s.disabled = true;
       });
-      cbs.forEach(cb => {
-        cb.checked = false;
-      });
+      cbIds.forEach(id => document.getElementById(id).checked = false);
     }
 
     function populatePropSelects(pset) {
       resetPropertySelectors();
       if (!pset || !availableProps[pset]) return;
 
-      const props = Array.from(availableProps[pset]).sort((a, b) => a.localeCompare(b, "nb"));
-      const selects = propSelectIds.map(id => document.getElementById(id));
-
-      selects.forEach(sel => {
+      const props = Array.from(availableProps[pset]).sort((a,b) => a.localeCompare(b,"nb"));
+      propSelectIds.forEach(id => {
+        const sel = document.getElementById(id);
         props.forEach(p => {
           const opt = document.createElement("option");
           opt.value = p;
@@ -501,10 +434,7 @@
     }
 
     async function scanProperties() {
-      if (!API) {
-        showError("API ikke klar. Vent et øyeblikk og prøv igjen.");
-        return;
-      }
+      if (!API) { showError("API ikke klar. Vent litt og prøv igjen."); return; }
 
       clearCharts();
       showError("");
@@ -520,7 +450,6 @@
         const models = await API.viewer.getObjects();
         if (!models || !models.length) {
           els.status.textContent = "ℹ️ Fant ingen objekter i visningen. Sørg for at modell(er) er innlastet.";
-          setBusy(false);
           return;
         }
 
@@ -553,7 +482,7 @@
           els.status.textContent = "ℹ️ Ingen Property Sets funnet på objektene i visningen.";
           sel.disabled = true;
         } else {
-          psetNames.sort((a, b) => a.localeCompare(b, "nb")).forEach(n => {
+          psetNames.sort((a,b)=>a.localeCompare(b,"nb")).forEach(n => {
             const opt = document.createElement("option");
             opt.value = n;
             opt.textContent = n;
@@ -571,102 +500,77 @@
       }
     }
 
-    // ---------- IFC GUID extraction (ROBUST) ----------
+    // ---------------- IFC GUID extraction (GUID (IFC)) ----------------
     function isIfcGuidLike(v) {
       if (v === null || v === undefined) return false;
       const s = String(v).trim();
-      // IFC GlobalId er normalt 22 tegn (base64-ish) f.eks. 32Ji4cVff4jPzKOheY9Zf1
       if (s.length !== 22) return false;
       return /^[0-9A-Za-z_$]+$/.test(s);
     }
 
-    function pickGuidValue(v) {
+    function clean(v) {
       if (v === null || v === undefined) return "";
-      const s = String(v).trim();
-      const cleaned = s.replace(/^["']|["']$/g, "").trim();
-      return cleaned;
+      return String(v).trim().replace(/^["']|["']$/g, "").trim();
     }
 
-    function extractGuidFromObject(obj) {
-      // 1) Top-level felt først
-      const directCandidates = [
+    function isGuidIfcPropertyName(name) {
+      const s = String(name || "").trim().toLowerCase();
+      // treffer eksakt "guid (ifc)" + små variasjoner
+      if (s === "guid (ifc)" || s === "guid(ifc)" || s === "ifc guid" || s === "ifcguid") return true;
+      // treffer f.eks. "GUID (IFC) [something]" eller andre varianter
+      if (s.includes("guid") && s.includes("ifc")) return true;
+      // fallback for globalid-varianter
+      if (s === "globalid" || s === "global id" || s.includes("globalid")) return true;
+      return false;
+    }
+
+    function psetPriorityScore(psetName) {
+      const n = String(psetName || "").toLowerCase();
+      // Prioriter Reference Object høyest
+      if (n.includes("reference object") || n.includes("reference_object") || n.includes("referenceobject") || n.includes("referance object")) return 100;
+      if (n.includes("pset_reference") || n.includes("pset reference")) return 95;
+      // Component Attributes etterpå
+      if (n.includes("component attributes") || n.includes("componentattributes")) return 80;
+      return 10;
+    }
+
+    function extractIfcGlobalId(obj) {
+      // 1) Top-level felt (hvis tilgjengelig)
+      const direct = [
         obj.ifcGuid, obj.ifcGUID, obj.ifc_guid,
         obj.GlobalId, obj.GlobalID, obj.globalId, obj.globalID,
         obj.guid, obj.GUID
-      ].map(pickGuidValue).filter(Boolean);
+      ].map(clean).filter(Boolean);
 
-      for (const c of directCandidates) {
-        if (isIfcGuidLike(c)) return c;
+      for (const c of direct) if (isIfcGuidLike(c)) return c;
+
+      // 2) PropertySets
+      const psets = Array.isArray(obj.properties) ? obj.properties : [];
+      if (!psets.length) return "";
+
+      // sorter psets etter prioritet (Reference Object først)
+      const sortedPsets = [...psets].sort((a,b) => psetPriorityScore(b.name) - psetPriorityScore(a.name));
+
+      // 2a) Finn property som heter GUID(IFC)-aktig
+      for (const ps of sortedPsets) {
+        for (const p of (ps.properties || [])) {
+          if (!isGuidIfcPropertyName(p.name)) continue;
+          const val = clean(p.value);
+          if (isIfcGuidLike(val)) return val;
+        }
       }
 
-      // 2) Property sets – prioriter Reference Object / Pset_Reference_Object osv.
-      const psets = Array.isArray(obj.properties) ? obj.properties : [];
-      if (psets.length) {
-        const preferredOrder = [];
-
-        // a) Reference Object / Pset_Reference_Object først
-        for (const ps of psets) {
-          const psn = String(ps.name || "").toLowerCase();
-          if (
-            psn.includes("reference object") ||
-            psn.includes("reference_object") ||
-            psn.includes("pset_reference") ||
-            psn.includes("pset reference") ||
-            psn.includes("referenceobject") ||
-            psn.includes("referance object")
-          ) {
-            preferredOrder.push(ps);
-          }
-        }
-
-        // b) Component Attributes etterpå
-        for (const ps of psets) {
-          const psn = String(ps.name || "").toLowerCase();
-          if (psn === "component attributes" || psn === "componentattributes") {
-            preferredOrder.push(ps);
-          }
-        }
-
-        // c) Resten til slutt
-        for (const ps of psets) {
-          if (!preferredOrder.includes(ps)) preferredOrder.push(ps);
-        }
-
-        const nameMatchers = [
-          /^globalid$/i,
-          /^global id$/i,
-          /^ifcguid$/i,
-          /^ifc guid$/i,
-          /^ifc globalid$/i,
-          /^ifc global id$/i,
-          /^guid$/i
-        ];
-
-        for (const ps of preferredOrder) {
-          for (const p of (ps.properties || [])) {
-            const pn = String(p.name || "").trim();
-            if (!pn) continue;
-
-            const matches = nameMatchers.some(rx => rx.test(pn));
-            if (!matches) continue;
-
-            const val = pickGuidValue(p.value);
-            if (isIfcGuidLike(val)) return val;
-          }
-        }
-
-        // 3) Siste fallback: skann alt etter noe som ser ut som IFC GUID
-        for (const ps of psets) {
-          for (const p of (ps.properties || [])) {
-            const val = pickGuidValue(p.value);
-            if (isIfcGuidLike(val)) return val;
-          }
+      // 2b) siste fallback: skann alle verdier etter 22-tegn IFC guid
+      for (const ps of sortedPsets) {
+        for (const p of (ps.properties || [])) {
+          const val = clean(p.value);
+          if (isIfcGuidLike(val)) return val;
         }
       }
 
       return "";
     }
-    // -----------------------------------------------
+    // ------------------------------------------------------------------
 
     async function getPropertyData(psetName, propName) {
       const counts = { withValue: 0, withoutValue: 0 };
@@ -701,14 +605,12 @@
 
               if (pname === propName) {
                 hasProp = true;
-                if (val !== null && val !== undefined && String(val).trim() !== "") {
-                  hasVal = true;
-                }
+                if (val !== null && val !== undefined && String(val).trim() !== "") hasVal = true;
               }
             }
           }
 
-          const key = hasProp && hasVal ? "withValue" : "withoutValue";
+          const key = (hasProp && hasVal) ? "withValue" : "withoutValue";
           counts[key]++;
 
           if (!selection[key][modelId]) selection[key][modelId] = [];
@@ -718,7 +620,7 @@
             modelId,
             runtimeId: obj.id,
             name: obj.name || obj.objectName || "",
-            ifcGuid: extractGuidFromObject(obj),
+            ifcGlobalId: extractIfcGlobalId(obj),
             properties: psetProps
           };
 
@@ -733,30 +635,18 @@
     function escapeCSV(value) {
       if (value === null || value === undefined) return "";
       const str = String(value);
-      if (/[;\n\r"]/.test(str)) {
-        return '"' + str.replace(/"/g, '""') + '"';
-      }
+      if (/[;\n\r"]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
       return str;
     }
 
     function exportSliceToCSV(pset, prop, sliceType, detailPerModel) {
       const objects = [];
-      for (const modelId in detailPerModel) {
-        const arr = detailPerModel[modelId] || [];
-        arr.forEach(o => objects.push(o));
-      }
-
-      if (!objects.length) {
-        showError("Ingen objekter å eksportere for valgt gruppe.");
-        return;
-      }
+      for (const modelId in detailPerModel) (detailPerModel[modelId] || []).forEach(o => objects.push(o));
+      if (!objects.length) { showError("Ingen objekter å eksportere for valgt gruppe."); return; }
 
       const allPropNamesSet = new Set();
-      objects.forEach(o => {
-        Object.keys(o.properties || {}).forEach(pn => allPropNamesSet.add(pn));
-      });
-
-      const allPropNames = Array.from(allPropNamesSet).sort((a, b) => a.localeCompare(b, "nb"));
+      objects.forEach(o => Object.keys(o.properties || {}).forEach(pn => allPropNamesSet.add(pn)));
+      const allPropNames = Array.from(allPropNamesSet).sort((a,b)=>a.localeCompare(b,"nb"));
 
       const baseCols = ["#", "ModelId", "RuntimeId", "ObjectName", "IfcGlobalId", "SliceType", "PropertySet"];
       const header = baseCols.concat(allPropNames);
@@ -772,24 +662,19 @@
           ModelId: o.modelId || "",
           RuntimeId: o.runtimeId || "",
           ObjectName: o.name || "",
-          IfcGlobalId: o.ifcGuid || "",
+          IfcGlobalId: o.ifcGlobalId || "",
           SliceType: sliceLabel,
           PropertySet: pset
         };
-
-        allPropNames.forEach(pn => {
-          row[pn] = (o.properties && pn in o.properties) ? o.properties[pn] : "";
-        });
-
-        const rowValues = header.map(col => escapeCSV(row[col]));
-        rows.push(rowValues.join(";"));
+        allPropNames.forEach(pn => row[pn] = (o.properties && pn in o.properties) ? o.properties[pn] : "");
+        rows.push(header.map(col => escapeCSV(row[col])).join(";"));
       });
 
       const csvContent = rows.join("\r\n");
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
 
+      const link = document.createElement("a");
       const dateStr = new Date().toISOString().slice(0, 10);
       const sliceShort = sliceType === "withValue" ? "medVerdi" : "utenVerdi";
       link.href = url;
@@ -799,18 +684,14 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      els.status.textContent =
-        `📤 Eksporterte ${objects.length} objekter til CSV (${sliceLabel}) for ${pset} → ${prop}.`;
+      els.status.textContent = `📤 Eksporterte ${objects.length} objekter til CSV (${sliceLabel}) for ${pset} → ${prop}.`;
       showError("");
     }
 
     function buildDetailSection(pset, prop, sliceType, details, parent) {
       const detailPerModel = details[sliceType] || {};
       const objects = [];
-      for (const modelId in detailPerModel) {
-        const arr = detailPerModel[modelId] || [];
-        arr.forEach(o => objects.push(o));
-      }
+      for (const modelId in detailPerModel) (detailPerModel[modelId] || []).forEach(o => objects.push(o));
 
       const sliceLabel = sliceType === "withValue" ? "Med verdi" : "Uten verdi/mangler property";
 
@@ -826,11 +707,7 @@
       headerDiv.className = "detail-header";
 
       const infoSpan = document.createElement("span");
-      if (!objects.length) {
-        infoSpan.textContent = "Ingen objekter i denne gruppen.";
-      } else {
-        infoSpan.textContent = `Antall objekter: ${objects.length}`;
-      }
+      infoSpan.textContent = objects.length ? `Antall objekter: ${objects.length}` : "Ingen objekter i denne gruppen.";
 
       const infoSmall = document.createElement("small");
       infoSmall.textContent = "Kolonner: #, ModelId, RuntimeId, IFC GUID, Navn, Verdi for valgt property.";
@@ -884,9 +761,9 @@
           index + 1,
           o.modelId || "",
           o.runtimeId || "",
-          o.ifcGuid || "",
+          o.ifcGlobalId || "",
           o.name || "",
-          val !== undefined && val !== null ? val : ""
+          (val !== undefined && val !== null) ? val : ""
         ];
 
         cells.forEach(c => {
@@ -925,19 +802,17 @@
       }
 
       if (!modelObjectIds.length) {
-        els.status.textContent =
-          sliceType === "withValue"
-            ? "Ingen objekter med verdi å markere."
-            : "Ingen objekter uten verdi/mangler property å markere.";
+        els.status.textContent = (sliceType === "withValue")
+          ? "Ingen objekter med verdi å markere."
+          : "Ingen objekter uten verdi/mangler property å markere.";
         return;
       }
 
       try {
         await API.viewer.setSelection({ modelObjectIds }, "replace");
-        els.status.textContent =
-          sliceType === "withValue"
-            ? `🔎 Markerte ${totalObjects} objekter MED verdi i modellen.`
-            : `🔎 Markerte ${totalObjects} objekter UTEN verdi/mangler property i modellen.`;
+        els.status.textContent = (sliceType === "withValue")
+          ? `🔎 Markerte ${totalObjects} objekter MED verdi i modellen.`
+          : `🔎 Markerte ${totalObjects} objekter UTEN verdi/mangler property i modellen.`;
       } catch (e) {
         showError("Feil ved markering av objekter: " + (e && e.message ? e.message : e));
       }
@@ -991,11 +866,7 @@
           plugins: {
             legend: {
               position: "bottom",
-              labels: {
-                font: { size: 14 },
-                padding: 20,
-                usePointStyle: true
-              }
+              labels: { font: { size: 14 }, padding: 20, usePointStyle: true }
             },
             tooltip: {
               callbacks: {
@@ -1012,25 +883,18 @@
                 return `${pct} %`;
               },
               color: "#fff",
-              font: {
-                weight: "bold",
-                size: 14
-              },
+              font: { weight: "bold", size: 14 },
               anchor: "center",
               align: "center",
               clamp: true,
               clip: false
             }
           },
-          animation: {
-            animateRotate: true,
-            duration: 900
-          },
+          animation: { animateRotate: true, duration: 900 },
           onClick: (event, elements) => {
             if (!elements || !elements.length) return;
             const index = elements[0].index;
             const sliceType = index === 0 ? "withValue" : "withoutValue";
-
             highlightSliceInModel(selection, sliceType);
             showBothSlicesDetails(pset, prop, details, detailContainer);
           }
@@ -1041,33 +905,22 @@
     }
 
     async function loadAllCharts() {
-      if (!API) {
-        showError("API ikke klar. Vent et øyeblikk og prøv igjen.");
-        return;
-      }
+      if (!API) { showError("API ikke klar. Vent et øyeblikk og prøv igjen."); return; }
 
       clearCharts();
       showError("");
 
       const pset = els.psetSelect.value;
-      if (!pset) {
-        showError("Velg et Property Set først.");
-        return;
-      }
+      if (!pset) { showError("Velg et Property Set først."); return; }
 
       const selectedProps = [];
       for (let i = 1; i <= 4; i++) {
         const cb = document.getElementById(`cb${i}`);
         const sel = document.getElementById(`prop${i}`);
-        if (cb.checked && sel && sel.value) {
-          selectedProps.push(sel.value);
-        }
+        if (cb.checked && sel && sel.value) selectedProps.push(sel.value);
       }
 
-      if (!selectedProps.length) {
-        showError("Huk av minst én property for å lage kakediagram.");
-        return;
-      }
+      if (!selectedProps.length) { showError("Huk av minst én property for å lage kakediagram."); return; }
 
       els.status.textContent = `📈 Laster ${selectedProps.length} kakediagram…`;
       els.colorizeButton.disabled = true;
@@ -1083,7 +936,7 @@
 
         els.status.textContent =
           `✅ ${selectedProps.length} kakediagram ferdig! Klikk på et kakestykke for å markere objekter ` +
-          `og vise tabeller med objekter (med / uten verdi) og eksportere til CSV.`;
+          `og vise tabeller (med / uten verdi) og eksportere til CSV.`;
         els.colorizeButton.disabled = false;
         els.resetButton.disabled = false;
       } catch (e) {
@@ -1096,10 +949,7 @@
 
     async function colorizeAll() {
       if (!API) return;
-      if (!lastSelections.size) {
-        showError("Ingen aktive utvalg å fargelegge. Generer kakediagram først.");
-        return;
-      }
+      if (!lastSelections.size) { showError("Ingen aktive utvalg å fargelegge. Generer kakediagram først."); return; }
 
       showError("");
       els.status.textContent = "🎨 Fargelegger objekter i modellen…";
@@ -1114,11 +964,8 @@
             const list = [];
 
             for (const modelId in perModel) {
-              if (perModel[modelId].length) {
-                list.push({ modelId, objectRuntimeIds: perModel[modelId] });
-              }
+              if (perModel[modelId].length) list.push({ modelId, objectRuntimeIds: perModel[modelId] });
             }
-
             if (!list.length) continue;
 
             const rgba = state === "withValue"
@@ -1149,8 +996,7 @@
 
       try {
         await API.viewer.setObjectState(undefined, { color: "reset" });
-        els.status.textContent =
-          "🔄 Modellen er tilbakestilt til originalfarger. Du kan fortsatt generere nye kakediagram med samme valg.";
+        els.status.textContent = "🔄 Modellen er tilbakestilt til originalfarger.";
       } catch (e) {
         showError("Feil ved tilbakestilling av modellfarger: " + (e && e.message ? e.message : e));
         els.status.textContent = "❌ Klarte ikke å tilbakestille modellfarger.";
@@ -1165,12 +1011,7 @@
     cbIds.forEach((cbId, index) => {
       const cb = document.getElementById(cbId);
       const sel = document.getElementById(propSelectIds[index]);
-      cb.addEventListener("change", () => {
-        if (!sel) return;
-        if (!cb.checked) {
-          sel.value = "";
-        }
-      });
+      cb.addEventListener("change", () => { if (!sel) return; if (!cb.checked) sel.value = ""; });
     });
 
     els.scanButton.onclick = scanProperties;
