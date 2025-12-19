@@ -79,11 +79,9 @@
     .detail-table th{position:sticky;top:0;background:#f0f0f0;z-index:1;font-weight:700;}
     .detail-table tbody tr:nth-child(even){background:#fdfdfd;}
 
-    /* click/zoom */
     .clickable-row{cursor:pointer;}
     .clickable-row:hover td{background:#eef6ff;}
 
-    /* Row highlight */
     .row-missing td{background:rgba(255,193,7,.28);}
     .row-duplicate td{background:rgba(231,76,60,.18);}
     .row-missing.row-duplicate td{background:linear-gradient(90deg, rgba(255,193,7,.28), rgba(231,76,60,.18));}
@@ -148,7 +146,8 @@
   <div id="chartsContainer"></div>
   <div class="footer-credit">
     MultiProperty Checker – Property completeness-oversikt direkte i modellen.<br>
-    Klikk på et kakestykke for å markere objekter og vise tabeller. <b>Klikk på en rad for å zoome til objektet.</b>
+    Klikk på et kakestykke for å markere objekter og vise tabeller. <b>Klikk på en rad for å zoome til objektet.</b><br>
+    (IFCPROJECT og IFCBUILDING er filtrert bort.)
   </div>
 </main>
 
@@ -232,7 +231,7 @@
     });
   }
 
-  // ========= IFCBUILDING filter helpers =========
+  // ========= Ignore IFCPROJECT + IFCBUILDING helpers =========
   function getIfcEntityTypeFromObjectProps(obj){
     const direct = obj.ifcType || obj.ifcEntity || obj.entityType || obj.type || obj.objectType || obj.className;
     if (direct && String(direct).trim()) return String(direct).trim().toUpperCase();
@@ -253,10 +252,11 @@
     return "";
   }
 
-  function isIfcBuilding(obj){
-    return getIfcEntityTypeFromObjectProps(obj) === "IFCBUILDING";
+  function isIgnoredIfcEntity(obj){
+    const t = getIfcEntityTypeFromObjectProps(obj);
+    return t === "IFCPROJECT" || t === "IFCBUILDING";
   }
-  // =============================================
+  // ==========================================================
 
   async function scanProperties(){
     if (!API){ showError("API ikke klar. Vent litt og prøv igjen."); return; }
@@ -288,8 +288,8 @@
 
         const objProps = await API.viewer.getObjectProperties(modelId, runtimeIds);
         for (const obj of objProps || []){
-          // ✅ IKKE les IFCBUILDING
-          if (isIfcBuilding(obj)) continue;
+          // ✅ IKKE les IFCPROJECT / IFCBUILDING
+          if (isIgnoredIfcEntity(obj)) continue;
 
           for (const pset of obj.properties || []){
             const name = pset.name || "";
@@ -305,7 +305,7 @@
       const psetNames = Object.keys(availableProps);
 
       if (!psetNames.length){
-        els.status.textContent = "ℹ️ Ingen Property Sets funnet (etter filtrering av IFCBUILDING).";
+        els.status.textContent = "ℹ️ Ingen Property Sets funnet (etter filtrering av IFCPROJECT/IFCBUILDING).";
         sel.disabled = true;
       } else {
         psetNames.sort((a,b)=>a.localeCompare(b,"nb")).forEach(n => {
@@ -380,8 +380,8 @@
       const objProps = await API.viewer.getObjectProperties(modelId, runtimeIds);
 
       for (const obj of objProps || []){
-        // ✅ IKKE les IFCBUILDING
-        if (isIfcBuilding(obj)) continue;
+        // ✅ IKKE les IFCPROJECT / IFCBUILDING
+        if (isIgnoredIfcEntity(obj)) continue;
 
         let hasProp = false;
         let hasVal = false;
@@ -576,7 +576,7 @@
 
     const infoSpan = document.createElement("span");
     const infoSmall = document.createElement("small");
-    infoSmall.textContent = "Klikk på en rad for å zoome til objektet. (IFCBUILDING er filtrert bort.)";
+    infoSmall.textContent = "Klikk på en rad for å zoome til objektet. (IFCPROJECT/IFCBUILDING er filtrert bort.)";
 
     left.appendChild(infoSpan);
     left.appendChild(infoSmall);
@@ -840,9 +840,9 @@
 
     try{
       for (const prop of selectedProps){
-        const { counts, selection, details } = await getPropertyData(pset, prop);
+        const { counts, selection, details } = await getPropertyData(els.psetSelect.value, prop);
         lastSelections.set(prop, selection);
-        createPieChart(pset, prop, counts, details, selection);
+        createPieChart(els.psetSelect.value, prop, counts, details, selection);
       }
 
       els.status.textContent =
