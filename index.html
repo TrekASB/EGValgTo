@@ -468,7 +468,6 @@
       charts.forEach(c => c.destroy());
       charts = [];
       els.chartsContainer.innerHTML = "";
-      // lastSelections beholdes for farge-reset
     }
 
     function resetPropertySelectors() {
@@ -572,103 +571,108 @@
       }
     }
 
-    function extractGuidFromObject(obj) {
-      let guid = obj.guid || obj.GlobalId || "";
-
-      if (obj.properties && obj.properties.length) {
-        for (const ps of obj.properties) {
-          const psName = (ps.name || "").toLowerCase();
-          if (psName === "component attributes" || psName === "componentattributes") {
-            for (const p of ps.properties || []) {
-              const pn = (p.name || "").toLowerCase();
-              if (
-                pn === "guid" ||
-                pn === "ifc guid" || pn === "ifcguid" ||
-                pn === "globalid" || pn === "global id"
-              ) {
-                if (p.value) return String(p.value);
-              }
-            }
-          }
-        }
-
-        if (!guid) {
-          for (const ps of obj.properties) {
-            for (const p of ps.properties || []) {
-              const pn = (p.name || "").toLowerCase();
-              if (
-                pn === "guid" ||
-                pn === "ifc guid" || pn === "ifcguid" ||
-                pn === "globalid" || pn === "global id"
-              ) {
-                if (p.value) return String(p.value);
-              }
-            }
-          }
-        }
-      }
-
-      return guid || "";
+    // ---------- IFC GUID extraction (ROBUST) ----------
+    function isIfcGuidLike(v) {
+      if (v === null || v === undefined) return false;
+      const s = String(v).trim();
+      // IFC GlobalId er normalt 22 tegn (base64-ish) f.eks. 32Ji4cVff4jPzKOheY9Zf1
+      if (s.length !== 22) return false;
+      return /^[0-9A-Za-z_$]+$/.test(s);
     }
 
-    function extractFileNameFromObject(obj) {
-      if (!obj || !obj.properties) return "";
+    function pickGuidValue(v) {
+      if (v === null || v === undefined) return "";
+      const s = String(v).trim();
+      const cleaned = s.replace(/^["']|["']$/g, "").trim();
+      return cleaned;
+    }
 
-      for (const ps of obj.properties) {
-        for (const p of ps.properties || []) {
-          const pn = (p.name || "").toLowerCase();
-          if (pn === "file name" || pn === "filename" || pn === "file") {
-            if (p.value) return String(p.value);
+    function extractGuidFromObject(obj) {
+      // 1) Top-level felt først
+      const directCandidates = [
+        obj.ifcGuid, obj.ifcGUID, obj.ifc_guid,
+        obj.GlobalId, obj.GlobalID, obj.globalId, obj.globalID,
+        obj.guid, obj.GUID
+      ].map(pickGuidValue).filter(Boolean);
+
+      for (const c of directCandidates) {
+        if (isIfcGuidLike(c)) return c;
+      }
+
+      // 2) Property sets – prioriter Reference Object / Pset_Reference_Object osv.
+      const psets = Array.isArray(obj.properties) ? obj.properties : [];
+      if (psets.length) {
+        const preferredOrder = [];
+
+        // a) Reference Object / Pset_Reference_Object først
+        for (const ps of psets) {
+          const psn = String(ps.name || "").toLowerCase();
+          if (
+            psn.includes("reference object") ||
+            psn.includes("reference_object") ||
+            psn.includes("pset_reference") ||
+            psn.includes("pset reference") ||
+            psn.includes("referenceobject") ||
+            psn.includes("referance object")
+          ) {
+            preferredOrder.push(ps);
+          }
+        }
+
+        // b) Component Attributes etterpå
+        for (const ps of psets) {
+          const psn = String(ps.name || "").toLowerCase();
+          if (psn === "component attributes" || psn === "componentattributes") {
+            preferredOrder.push(ps);
+          }
+        }
+
+        // c) Resten til slutt
+        for (const ps of psets) {
+          if (!preferredOrder.includes(ps)) preferredOrder.push(ps);
+        }
+
+        const nameMatchers = [
+          /^globalid$/i,
+          /^global id$/i,
+          /^ifcguid$/i,
+          /^ifc guid$/i,
+          /^ifc globalid$/i,
+          /^ifc global id$/i,
+          /^guid$/i
+        ];
+
+        for (const ps of preferredOrder) {
+          for (const p of (ps.properties || [])) {
+            const pn = String(p.name || "").trim();
+            if (!pn) continue;
+
+            const matches = nameMatchers.some(rx => rx.test(pn));
+            if (!matches) continue;
+
+            const val = pickGuidValue(p.value);
+            if (isIfcGuidLike(val)) return val;
+          }
+        }
+
+        // 3) Siste fallback: skann alt etter noe som ser ut som IFC GUID
+        for (const ps of psets) {
+          for (const p of (ps.properties || [])) {
+            const val = pickGuidValue(p.value);
+            if (isIfcGuidLike(val)) return val;
           }
         }
       }
 
       return "";
     }
-
-    async function getModelNameMap() {
-      const map = {};
-      if (!API) return map;
-
-      try {
-        if (API.viewer && typeof API.viewer.getModels === "function") {
-          const models = await API.viewer.getModels();
-          (models || []).forEach(m => {
-            const modelId = m.modelId || m.modelid || m["model Id"];
-            if (!modelId) return;
-            const name =
-              m.fileName || m.filename || m.file || m.name || m.modelName || "";
-            if (name) map[modelId] = name;
-          });
-        }
-      } catch (e) {
-        // fall back to info from getObjects if getModels isn't available
-      }
-
-      if (Object.keys(map).length) return map;
-
-      try {
-        const models = await API.viewer.getObjects();
-        (models || []).forEach(m => {
-          const modelId = m.modelId || m.modelid || m["model Id"];
-          if (!modelId) return;
-          const name =
-            m.fileName || m.filename || m.file || m.name || m.modelName || "";
-          if (name) map[modelId] = name;
-        });
-      } catch (e) {
-        // ignore
-      }
-
-      return map;
-    }
+    // -----------------------------------------------
 
     async function getPropertyData(psetName, propName) {
       const counts = { withValue: 0, withoutValue: 0 };
       const selection = { withValue: {}, withoutValue: {} };
       const details = { withValue: {}, withoutValue: {} };
 
-      const modelNameMap = await getModelNameMap();
       const models = await API.viewer.getObjects();
       if (!models || !models.length) return { counts, selection, details };
 
@@ -676,8 +680,6 @@
         const modelId = m.modelId || m.modelid || m["model Id"];
         const objs = m.objects || [];
         if (!modelId || !objs.length) continue;
-        const fallbackModelName =
-          m.fileName || m.filename || m.file || m.name || m.modelName || "";
 
         const runtimeIds = objs.map(o => o.id);
         if (!runtimeIds.length) continue;
@@ -688,9 +690,6 @@
           let hasProp = false;
           let hasVal = false;
           const psetProps = {};
-          const fileNameFromObject = extractFileNameFromObject(obj);
-          const modelName =
-            modelNameMap[modelId] || fileNameFromObject || fallbackModelName;
 
           for (const ps of obj.properties || []) {
             if (ps.name !== psetName) continue;
@@ -717,10 +716,9 @@
 
           const objectInfo = {
             modelId,
-            modelName,
             runtimeId: obj.id,
             name: obj.name || obj.objectName || "",
-            guid: extractGuidFromObject(obj),
+            ifcGuid: extractGuidFromObject(obj),
             properties: psetProps
           };
 
@@ -760,16 +758,7 @@
 
       const allPropNames = Array.from(allPropNamesSet).sort((a, b) => a.localeCompare(b, "nb"));
 
-      const baseCols = [
-        "#",
-        "ModelId",
-        "ModelName",
-        "RuntimeId",
-        "ObjectName",
-        "ObjectGuid",
-        "SliceType",
-        "PropertySet"
-      ];
+      const baseCols = ["#", "ModelId", "RuntimeId", "ObjectName", "IfcGlobalId", "SliceType", "PropertySet"];
       const header = baseCols.concat(allPropNames);
 
       const rows = [];
@@ -781,10 +770,9 @@
         const row = {
           "#": index + 1,
           ModelId: o.modelId || "",
-          ModelName: o.modelName || "",
           RuntimeId: o.runtimeId || "",
           ObjectName: o.name || "",
-          ObjectGuid: o.guid || "",
+          IfcGlobalId: o.ifcGuid || "",
           SliceType: sliceLabel,
           PropertySet: pset
         };
@@ -845,7 +833,7 @@
       }
 
       const infoSmall = document.createElement("small");
-      infoSmall.textContent = "Kolonner: #, ModelId, Modellnavn, RuntimeId, GUID, Navn, Verdi for valgt property.";
+      infoSmall.textContent = "Kolonner: #, ModelId, RuntimeId, IFC GUID, Navn, Verdi for valgt property.";
 
       const leftInfo = document.createElement("div");
       leftInfo.style.display = "flex";
@@ -879,7 +867,7 @@
 
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-      ["#", "ModelId", "ModelName", "RuntimeId", "ObjectGuid", "ObjectName", prop].forEach(col => {
+      ["#", "ModelId", "RuntimeId", "IfcGlobalId", "ObjectName", prop].forEach(col => {
         const th = document.createElement("th");
         th.textContent = col;
         headRow.appendChild(th);
@@ -895,9 +883,8 @@
         const cells = [
           index + 1,
           o.modelId || "",
-          o.modelName || "",
           o.runtimeId || "",
-          o.guid || "",
+          o.ifcGuid || "",
           o.name || "",
           val !== undefined && val !== null ? val : ""
         ];
@@ -922,7 +909,6 @@
       buildDetailSection(pset, prop, "withoutValue", details, detailContainer);
     }
 
-    // Marker objekter i modellen for valgt kakestykke (withValue / withoutValue)
     async function highlightSliceInModel(selection, sliceType) {
       if (!API) return;
 
@@ -1020,7 +1006,6 @@
                 }
               }
             },
-            // Prosenttekst inne i kakestykkene
             datalabels: {
               formatter: value => {
                 const pct = total ? (value / total * 100).toFixed(1) : 0;
@@ -1041,16 +1026,12 @@
             animateRotate: true,
             duration: 900
           },
-          // Klikk på kakestykke → marker objekter i modellen + vis tabeller
           onClick: (event, elements) => {
             if (!elements || !elements.length) return;
             const index = elements[0].index;
             const sliceType = index === 0 ? "withValue" : "withoutValue";
 
-            // Marker objekter i modellen for denne gruppen
             highlightSliceInModel(selection, sliceType);
-
-            // Vis begge tabeller (med og uten verdi) under diagrammet
             showBothSlicesDetails(pset, prop, details, detailContainer);
           }
         }
